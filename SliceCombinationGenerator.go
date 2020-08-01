@@ -1,3 +1,29 @@
+//This program takes a 2 dimensional slice of any type, and returns a 2 dimensional slice
+//of the same type with all combinations for each element of each inner slice with each 
+//element of the other inner slices, combinations where not all inner slices are used are included
+
+//Example say you have a 2D slice of type [][]string{} and it looks like this:
+
+//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
+
+//the combinations will look something like this:
+
+//[]string{a0} []string{a0, b0}, []string{a0, c0}, []string{a0, b0, c0}, []string{b0, c0}, []string{b0}
+
+//THIS PROGRAM DOES NOT COMBINE THE ELEMENTS OF ONE INNER SLICE WITH ANOTHER
+
+//for instance for the above example you will never get a combination []string{a0, a1} or []string{a1, a2}
+
+//The idea of this program is that each inner slice is has unique elements that are not to be combined with each other
+//but only to be combined with the unique elements of the other inner slices
+
+//Throughout this code I have written comments as to where you need to rename the type of string to your slice type
+
+//If you are using a type struct for your 2D array you will need to include the struct definition in this file
+//so that the code can compare to that type
+
+//To quick find my comments about where to insert your type in place of string use keyword REPLACETYPECASE
+
 package main
 
 
@@ -11,173 +37,43 @@ import(
 
 func main() {
 
+	//REPLACETYPECASE
 	mySliceOriginal := [][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
 
 
 
 	mySliceAsInterface := Convert2DSliceAnyTypeTo2DInterface(mySliceOriginal, len(mySliceOriginal))
 
-
-	fmt.Println()
-	fmt.Printf("%#v\n", mySliceAsInterface[0])
-
-	panic("argghh")
-
 	allCombosForElementsOfMySlice := AllCombinationsForElementsOfMultipleSlices(mySliceAsInterface)
 
 	mySliceCombosAsOriginalType := [][]string{}
 
-	valueInterface := [][]interface{}{[]interface{}{"hello"}}
 
 
-	fmt.Printf("%#v\n", allCombosForElementsOfMySlice[0])
-	fmt.Printf("%#v\n", valueInterface[0])
-
-
-	panic("yippyskippy")
-
-	fmt.Println("rowoworow", allCombosForElementsOfMySlice[0][0])
-	
-	
-
-	itemcheck := valueInterface[0][0]
-
-
-
-	// typeString := reflect.TypeOf("stir")
-
-	value, ok := itemcheck.(string)
-
-
-
-	switch itemcheck.(type){
-		case string:
-			fmt.Println("ok ok ok ")
-
-	}
-
-
-	panic("error error error ")
-	fmt.Printf("%t\n", itemcheck)
-
-	fmt.Println(ok, value)
-
-	// panic("check check check")
-
-
-	// outerType := reflect.TypeOf(mySliceAsInterface)
-
-	// innerType := reflect.TypeOf(mySliceAsInterface[0])
+	innerType := reflect.TypeOf(mySliceAsInterface[0])
 
 	for i := 0; i < len(allCombosForElementsOfMySlice); i++ {
 		
 			currentElementSlice := allCombosForElementsOfMySlice[i]
 
-			fmt.Println("row", currentElementSlice)
-
+			//REPLACETYPECASE
 			convertedTypeForCurrentElements := []string{}
 
 			for j := 0; j < len(currentElementSlice); j++ {
 
-					
-					valueInner, ok := currentElementSlice[j].(string)
+				//REPLACETYPECASE	
+				valueInner, ok := currentElementSlice[j].(string)
 
-					
+				if(ok){
 
-					// typeOfString := reflect.TypeOf("string")
+					convertedTypeForCurrentElements = append(convertedTypeForCurrentElements, valueInner)
+				}else{
+					fmt.Println("error converting back to original data from interface, the type recognized was: \n", innerType, "\n at slice indices: \n", i, " ", j, "\n with value: \n", currentElementSlice[j])
+					panic("error converting back to original data type")
+				}
 
+			}
 
-
-					innerValue := currentElementSlice[j]
-
-					reflectValue := reflect.ValueOf(innerValue)
-
-					fmt.Println(reflectValue.CanInterface())
-
-
-					if(reflectValue.CanInterface()){
-						//fmt.Println(reflectValue.Interface())
-						fmt.Printf("%#v\n", reflectValue.Interface())
-						// stringcast := string(reflectValue.Interface())
-						// fmt.Println(stringcast)
-						value, ok := reflectValue.Interface().(string)
-						if(ok){
-							fmt.Println("Yippeee", value)
-						}else{
-						//	fmt.Println(reflect.ValueOf(reflectValue.Interface()))
-
-							// stringType := reflect.TypeOf("string")
-							// interfacedVal := reflectValue.Interface()
-
-						}
-					}
-
-
-					panic("good panic")
-
-					
-					reflectValue = reflect.ValueOf(innerValue)
-
-
-					// reflectValueString := reflectValue.String()
-
-					// // reflectValue = interface{}(reflectValue)
-
-					// fmt.Println(reflectValue.SetString())
-
-					fmt.Println(reflect.TypeOf(reflectValue))
-
-					panic("check")
-
-					// interfaceValue, ok0 := reflectValue.(interface{})
-
-					// if(ok0){
-					// 	reflectValue = interfaceValue.Interface()
-
-					// 	asserted, ok1 := reflectValue.(string)
-
-					// 	if(ok1){
-					// 		fmt.Println("YIPEEE", asserted)
-					// 	}
-					// }
-					
-
-					// reflectValueConverted := reflectValue.Convert(typeOfString)
-
-					// fmt.Println(reflectValueConverted)
-
-					// /mySlice := []string{reflectValue}
-
-					reflectType := reflect.TypeOf(reflectValue)
-
-					// fmt.Println(reflectType)
-					panic("well darn")
-
-					switch reflectType.Kind(){
-						case reflect.String:
-							fmt.Println("hello hterherhekjrhekjh")
-							panic("ok now tis all good") 
-					}
-
-					
-
-
-					fmt.Println("elenent", currentElementSlice)
-
-					if(ok){
-						panic("ok ok ok ")
-						convertedTypeForCurrentElements = append(convertedTypeForCurrentElements, valueInner)
-					}else{
-						fmt.Printf("%f\n", currentElementSlice[j])
-						fmt.Println(reflect.ValueOf(currentElementSlice[j]))
-						fmt.Println(reflect.TypeOf(valueInner))
-						panic("super panic")
-					}
-
-		}
-
-		fmt.Println(convertedTypeForCurrentElements)
-		panic("errororr")
 		
 
 		mySliceCombosAsOriginalType = append(mySliceCombosAsOriginalType, convertedTypeForCurrentElements)
@@ -189,8 +85,6 @@ func main() {
 		fmt.Println(mySliceCombosAsOriginalType[i])
 
 	}
-
-	fmt.Println(reflect.TypeOf(mySliceCombosAsOriginalType))
 
 
 
@@ -404,30 +298,27 @@ func Convert2DSliceAnyTypeTo2DInterface(inputSlice interface{}, lengthReturnSlic
 
 	switch reflectType.Kind() {
 		case reflect.Slice:
-			fmt.Println("YES")
 			elementType := reflectType.Elem()
 			switch elementType.Kind(){
 				case reflect.Slice:
-					fmt.Println("YES2")
-					// fmt.Println(reflectType.Slice(0, 1))
 				
 					valueOf2DSlice := reflect.ValueOf(inputSlice)
 
-					firstElement := valueOf2DSlice
-
+					//REPLACETYPECASE
 					typeString := reflect.TypeOf([][]string{})
 
-					firstElementConverted := firstElement.Convert(typeString)
+					firstConversion2DSlice := valueOf2DSlice.Convert(typeString)
 
-					firstElementConvertedFinal := firstElementConverted.Interface().([][]string)
+					//REPLACETYPECASE
+					finalConversion2DSlice := firstConversion2DSlice.Interface().([][]string)
 
 
 					returnData := [][]interface{}{}
 
 
-					for i := 0; i < len(firstElementConvertedFinal); i++ {
+					for i := 0; i < len(finalConversion2DSlice); i++ {
 
-						firstElementInner := firstElementConvertedFinal[i]
+						firstElementInner := finalConversion2DSlice[i]
 
 						interfaceSliceInner := []interface{}{}
 
@@ -437,70 +328,6 @@ func Convert2DSliceAnyTypeTo2DInterface(inputSlice interface{}, lengthReturnSlic
 
 						returnData = append(returnData, interfaceSliceInner)
 					}
-
-
-					fmt.Println(firstElementConvertedFinal)
-
-
-
-					// typeAssert, ok := firstElement.([]string)
-
-					// if(ok){
-					// 	fmt.Println(typeAssert)
-					// 	panic("good good")
-					// }
-
-
-					fmt.Printf("%#v\n", returnData[0])
-					panic("yarhoo")
-
-					// interfaceof2dslice := valueOf2DSlice.Interface()
-
-
-
-
-					// myArray := []interface{}{interfaceof2dslice}
-
-
-
-					// fmt.Println(myArray[0][0])
-
-					panic("earliest arghhh")
-
-
-					fmt.Println(valueOf2DSlice.Slice(0, 3))
-
-					returnData = [][]interface{}{}
-
-					for i := 0; i < valueOf2DSlice.Len(); i++ {
-
-						indexValue := valueOf2DSlice.Index(i)
-
-						interfaceSlice := []interface{}{}
-
-						fmt.Printf("%#v\n", indexValue)
-
-						myValue := indexValue.Index(i)
-
-						
-
-
-						fmt.Printf("%#t", myValue)
-
-						// panic("ok")
-
-
-						for i := 0; i < indexValue.Len(); i++ {
-							
-							interfaceSlice = append(interfaceSlice, indexValue.Index(i))
-						}
-
-						returnData = append(returnData, interfaceSlice)
-					}	
-
-					fmt.Printf("%#v\n", returnData[0])
-
-					panic("ealier arghh")
 
 					return returnData
 				default:
