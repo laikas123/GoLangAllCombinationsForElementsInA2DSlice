@@ -80,11 +80,17 @@ func main() {
 
 	}
 
+
+	//Print the resulting data for all combinations
 	for i := 0; i < len(mySliceCombosAsOriginalType); i++ {
 
 		fmt.Println(mySliceCombosAsOriginalType[i])
 
 	}
+
+	//TODO:
+
+	//Here is where you can return the combination slice back to your main program
 
 
 
@@ -154,7 +160,7 @@ func AllCombinationsForElementsOfMultipleSlices(inputOptions [][]interface{})  [
 	}
 
 	if(len(allElementsToOneSlice) != len(returnValsIndices[0])){
-		fmt.Println(len(allElementsToOneSlice), len(returnValsIndices))
+		fmt.Println("Length Of Elements Slice ", len(allElementsToOneSlice), " Length Of Indices Slice ", len(returnValsIndices))
 		panic("more indices than total elements")
 	}
 
@@ -231,10 +237,7 @@ func CheckModulosAreSatisied(breakpoints []int, number int, numberRequiredBinary
 
 
 			if(binarySlice[horizontalCursor] == 1){
-			
-
-				fmt.Println(currentAdditionToSummation)
-
+		
 				summation = summation + currentAdditionToSummation
 
 			}
@@ -263,7 +266,7 @@ func CheckModulosAreSatisied(breakpoints []int, number int, numberRequiredBinary
 
 
 		}
-		fmt.Println(horizontalCursor)
+		
 		if(horizontalCursor == -1){
 			return true, binarySlice
 		}
@@ -291,9 +294,7 @@ func IsABreakPoint(testVal int, breakpoints []int) bool {
 
 func Convert2DSliceAnyTypeTo2DInterface(inputSlice interface{}, lengthReturnSlice int) [][]interface{}{
 
-	fmt.Printf("%t", inputSlice)
-
-
+	
 	reflectType := reflect.TypeOf(inputSlice)
 
 	switch reflectType.Kind() {
