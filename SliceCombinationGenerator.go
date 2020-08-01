@@ -40,51 +40,40 @@ func main() {
 	//REPLACETYPECASE
 	mySliceOriginal := [][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
 
+	//REPLACETYPECASE
+	mySliceAllValsToOneInnerArray := []string{}
 
-
-	mySliceAsInterface := Convert2DSliceAnyTypeTo2DInterface(mySliceOriginal, len(mySliceOriginal))
-
-	allCombosForElementsOfMySlice := AllCombinationsForElementsOfMultipleSlices(mySliceAsInterface)
-
-	mySliceCombosAsOriginalType := [][]string{}
-
-
-
-	innerType := reflect.TypeOf(mySliceAsInterface[0])
-
-	for i := 0; i < len(allCombosForElementsOfMySlice); i++ {
-		
-			currentElementSlice := allCombosForElementsOfMySlice[i]
-
-			//REPLACETYPECASE
-			convertedTypeForCurrentElements := []string{}
-
-			for j := 0; j < len(currentElementSlice); j++ {
-
-				//REPLACETYPECASE	
-				valueInner, ok := currentElementSlice[j].(string)
-
-				if(ok){
-
-					convertedTypeForCurrentElements = append(convertedTypeForCurrentElements, valueInner)
-				}else{
-					fmt.Println("error converting back to original data from interface, the type recognized was: \n", innerType, "\n at slice indices: \n", i, " ", j, "\n with value: \n", currentElementSlice[j])
-					panic("error converting back to original data type")
-				}
-
-			}
-
-		
-
-		mySliceCombosAsOriginalType = append(mySliceCombosAsOriginalType, convertedTypeForCurrentElements)
-
+	for i := 0; i < len(mySliceOriginal); i++ {
+		mySliceAllValsToOneInnerArray = append(mySliceAllValsToOneInnerArray, mySliceOriginal[i]...)
 	}
 
+	
 
+	allComboIndices := AllCombinationsIndices(mySliceOriginal) 
+
+	//REPLACETYPECASE
+	allCombosSlice := [][]string{}
+
+	for i := 0; i < len(allComboIndices); i++ {
+
+		currentIndices := allComboIndices[i]
+
+		//REPLACETYPECASE
+		comboToAppend := []string{}
+
+		for j := 0; j < len(currentIndices); j++ {
+			if(currentIndices[j] == 1){
+				comboToAppend = append(comboToAppend, mySliceAllValsToOneInnerArray[j])
+			}
+		}
+
+		allCombosSlice = append(allCombosSlice, comboToAppend)
+
+	}
 	//Print the resulting data for all combinations
-	for i := 0; i < len(mySliceCombosAsOriginalType); i++ {
+	for i := 0; i < len(allCombosSlice); i++ {
 
-		fmt.Println(mySliceCombosAsOriginalType[i])
+		fmt.Println(allCombosSlice[i])
 
 	}
 
@@ -96,9 +85,52 @@ func main() {
 
 }
 
-func AllCombinationsForElementsOfMultipleSlices(inputOptions [][]interface{})  [][]interface{}{
+func AllCombinationsIndices(inputSlice interface{})  [][]int{
 
 
+	reflectType := reflect.TypeOf(inputSlice)
+
+	inputOptions := [][]interface{}{}
+
+	switch reflectType.Kind() {
+		case reflect.Slice:
+			elementType := reflectType.Elem()
+			switch elementType.Kind(){
+				case reflect.Slice:
+				
+					valueOf2DSlice := reflect.ValueOf(inputSlice)
+
+					//REPLACETYPECASE
+					typeString := reflect.TypeOf([][]string{})
+
+					firstConversion2DSlice := valueOf2DSlice.Convert(typeString)
+
+					//REPLACETYPECASE
+					finalConversion2DSlice := firstConversion2DSlice.Interface().([][]string)
+
+
+
+					for i := 0; i < len(finalConversion2DSlice); i++ {
+
+						firstElementInner := finalConversion2DSlice[i]
+
+						interfaceSliceInner := []interface{}{}
+
+						for j := 0; j < len(firstElementInner); j++ {
+							interfaceSliceInner = append(interfaceSliceInner, firstElementInner[j])
+						}
+
+						inputOptions = append(inputOptions, interfaceSliceInner)
+					}
+
+					
+				default:
+					panic("error, not a valid 2D slice, outer type is a slice, but inner type is not")	
+			}
+		default:
+			panic("error, not a valid 2D slice, outermost type is not of any slice")	
+			
+	}
 
 	bitSlice := []int{}
 	breakpoints := []int{}
@@ -140,8 +172,11 @@ func AllCombinationsForElementsOfMultipleSlices(inputOptions [][]interface{})  [
 
 	returnValsIndices := [][]int{}
 
+
+
+
 	for (currentNumber < int(maxNumber) + 1){
-		satisfied, binarySlice := CheckModulosAreSatisied(breakpoints, currentNumber, len(bitSlice))
+		satisfied, binarySlice := CheckModulosAreSatisfied(breakpoints, currentNumber, len(bitSlice))
 	
 		if(satisfied){ 
 
@@ -151,51 +186,12 @@ func AllCombinationsForElementsOfMultipleSlices(inputOptions [][]interface{})  [
 		currentNumber++
 	}
 
-	allElementsToOneSlice := []interface{}{}
+	return returnValsIndices
 
-
-
-	for i := 0; i < len(inputOptions); i++ {
-		allElementsToOneSlice = append(allElementsToOneSlice, inputOptions[i]...)
-	}
-
-	if(len(allElementsToOneSlice) != len(returnValsIndices[0])){
-		fmt.Println("Length Of Elements Slice ", len(allElementsToOneSlice), " Length Of Indices Slice ", len(returnValsIndices))
-		panic("more indices than total elements")
-	}
-
-
-	returnVals := [][]interface{}{}
-
-	for i := 0; i < len(returnValsIndices); i++ {
-
-		currentIndices := returnValsIndices[i]
-
-		currentCombination := []interface{}{}
-
-		for j := 0; j < len(currentIndices); j++ {
-
-			currentBit := currentIndices[j]
-
-			if(currentBit == 0){
-				continue
-			}else{
-				currentCombination = append(currentCombination, allElementsToOneSlice[j])
-			}
-
-		}
-
-		returnVals = append(returnVals, currentCombination)
-
-	}
-
-
-	return returnVals
-	
 }
 
 
-func CheckModulosAreSatisied(breakpoints []int, number int, numberRequiredBinaryLength int) (bool, []int) {
+func CheckModulosAreSatisfied(breakpoints []int, number int, numberRequiredBinaryLength int) (bool, []int) {
 
 
 
@@ -289,65 +285,6 @@ func IsABreakPoint(testVal int, breakpoints []int) bool {
 	}
 	return false
 }
-
-
-
-func Convert2DSliceAnyTypeTo2DInterface(inputSlice interface{}, lengthReturnSlice int) [][]interface{}{
-
-	
-	reflectType := reflect.TypeOf(inputSlice)
-
-	switch reflectType.Kind() {
-		case reflect.Slice:
-			elementType := reflectType.Elem()
-			switch elementType.Kind(){
-				case reflect.Slice:
-				
-					valueOf2DSlice := reflect.ValueOf(inputSlice)
-
-					//REPLACETYPECASE
-					typeString := reflect.TypeOf([][]string{})
-
-					firstConversion2DSlice := valueOf2DSlice.Convert(typeString)
-
-					//REPLACETYPECASE
-					finalConversion2DSlice := firstConversion2DSlice.Interface().([][]string)
-
-
-					returnData := [][]interface{}{}
-
-
-					for i := 0; i < len(finalConversion2DSlice); i++ {
-
-						firstElementInner := finalConversion2DSlice[i]
-
-						interfaceSliceInner := []interface{}{}
-
-						for j := 0; j < len(firstElementInner); j++ {
-							interfaceSliceInner = append(interfaceSliceInner, firstElementInner[j])
-						}
-
-						returnData = append(returnData, interfaceSliceInner)
-					}
-
-					return returnData
-				default:
-					panic("error, not a valid 2D slice, outer type is a slice, but inner type is not")	
-			}
-		default:
-			panic("error, not a valid 2D slice, outermost type is not of any slice")	
-			
-	}
-
-	
-
-
-
-	return [][]interface{}{}
-
-}
-
-
 
 
 
