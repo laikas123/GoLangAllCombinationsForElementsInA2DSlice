@@ -43,7 +43,7 @@ func main() {
 		originalSliceTo1DSlice = append(originalSliceTo1DSlice, originalSlice[i]...)
 	}
 
-	//a bit slice is used to index combinations from the 1D representation
+	//a bit cursor is used to index combinations from the 1D representation
 	bitCursor := []int{}
 	
 	//break points are where type ends into another
