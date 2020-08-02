@@ -1,113 +1,124 @@
-//This program takes an arbitrary length 2 dimensional slice of any type, and returns a 2 dimensional slice
-//of the same type with all combinations for each element of each inner slice with each 
-//element of the other inner slices, combinations where not all inner slices are used are included
+//this program takes a 2D slice of any kind and any length, with its inner slices being of any length
+//it treats each inner slice as its own "type" and returns all combinations such that one combination 
+//never has the same type twice.. 
 
-//Example say you have a 2D slice of type [][]string{} and it looks like this:
-
-//(NOTE for describing this code the example below is used throughout the program, but the same
-//principles apply to any length 2D slice with any length inner slices)
-
-//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
-
-//the combinations will look something like this:
-
-//[]string{a0} []string{a0, b0}, []string{a0, c0}, []string{a0, b0, c0}, []string{b0, c0}, []string{b0} etc...
-
-//THIS PROGRAM DOES NOT COMBINE THE ELEMENTS OF ONE INNER SLICE WITH ANOTHER
-
-//for instance for the above example you will never get a combination []string{a0, a1} or []string{a1, a2}
-
-//in case the above example is too discrete take this example:
+//take the following example:
 
 //[][]string{[]string{"dog black", "dog white", "dog brown"}, []string{"cat orange"}, []string{"fish blue", "fish red"}}
 
-//this program would match combinations of animals, but no combination would include two cats, two dogs, or two fish
-//a combination can lack a cat, fish or dog, but it can never have too of the same animal type
-//the rest of the comments will now go back to the simpler example:
-//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
+//the code will give combintions such as []string{"dog black, cat orange"}, []string{"cat orange, fish red"}
 
-//The idea of this program is that each inner slice is has unique elements that are not to be combined with each other
-//but only to be combined with the unique elements of the other inner slices
-
-//Throughout this code I have written comments as to where you need to rename the type of string to your slice type
-//using the keyword REPLACETYPE you can search and find these lines
-
-//If you are using a type struct for your 2D array you will need to include the struct definition in this file
-//so that the code can compare to that type
-
-//IMPORTANT as mentioned above, by default this code uses the 2D slice type [][]string
-//To quick find comments where to insert your type in place of string use keyword REPLACETYPE use your 
-//type of data instead of string,for custom struct you will need to add the struct definition to this file
+//each combination must have at least 1 animal, and can have up to 3 (or however many animals there are), but 
+//the important thing there can never be two animals of any type in the same combination, so never 2 dogs, 3 fish etc..
+//this program generates every possible combination of this type for any arbitrary length 2D slice, with each of its
+//inner slices being of arbitrary length 
 
 package main
 
 
 import(
-
 	"fmt"
 	"math"
-	"reflect"
 )
 
+//IMPORTANT in the code it currently is set to use type [][]string as the 2D slice type by default
+//to use any slice type look for the comments containing "REPLACETYPE" (no quotes) and put the desired 
+//2D slice type there, note for 2D slices using a struct, add the struct definition to this program
 
 func main() {
 
 	//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
 	//definition to this file 
-	mySliceOriginal := [][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1", "b2"}, []string{"c0", "c1", "c2", "c3"}}
+	originalSlice := [][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1", "b2"}, []string{"c0", "c1", "c2", "c3"}}
 
-	//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
-	//definition to this file
-	mySliceAllValsToOneInnerArray := []string{}
+	//this is a 1D representation of the original slice with identical data 
+	//so for the sample data above it would be
+	//[]string{"a0", "a1", "a2", "b0", "b1", "b2", "c0", "c1", "c2", "c3"}
+	//this allows for indexing combinations using a "binary cursor" 
+	//as seen throughout the code
+	originalSliceTo1DSlice := []string{}
 
 
-	//the "mySliceAllValsToOneInnerArray" for the example:
-	//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
-	//would become 
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//as seen later in the program this allows the binarySlice of bits to use "breakpoints"
-	//to smoothly find combinations
-	for i := 0; i < len(mySliceOriginal); i++ {
-		mySliceAllValsToOneInnerArray = append(mySliceAllValsToOneInnerArray, mySliceOriginal[i]...)
+	for i := 0; i < len(originalSlice); i++ {
+		originalSliceTo1DSlice = append(originalSliceTo1DSlice, originalSlice[i]...)
 	}
 
-
+	//a bit slice is used to index combinations from the 1D representation
+	bitCursor := []int{}
 	
-	//allCombo has inner elements like this:
-	//[]int{0, 0, 0, 1, 0, 1, 0, 0}
-	//[]int{0, 0, 1, 0, 0, 0, 0, 0}
-	//which map to the "mySliceAllValsToOneInnerArray" which as commented above is:
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//as seen in the function AllCombinationIndices() by using modulus operator %
-	//its easy to return only indices that will never include 2 a values, 2 b values, or 2 c values
-	allComboIndices := AllCombinationsIndices(mySliceOriginal) 
+	//break points are where type ends into another
+	//for the example slice:
+	//
+	//[]string{"a0", "a1", "a2", "b0", "b1", "b2", "c0", "c1", "c2", "c3"}
+	//
+	//indices:   0     1     2     3     4     5     6     7     8     9
+	//
+	//the breakpoints are 
+	//0, 3, and 5 as from left to right these are where "new inner slice beginnings"
+	//this is more easily seen in the original 2D representation:
+	//
+	//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1", "b2"}, []string{"c0", "c1", "c2", "c3"}}
+	//
+	//indices:              0     1     2               3     4     5               6     7     8     9
+	//
+	//these breakpoints help the cursor ensure it never chooses a combination with two 
+	//elements from the same inner slice
+	breakpoints := []int{}
+
+	breakPointTracker := 0
+
+
+	for i := 0; i < len(originalSlice); i++ {
+
+		currentInnerSlice := originalSlice[i]
+
+		for j := 0; j < len(currentInnerSlice); j++ {
+
+			//only append breakpoint for each new inner slice beginning
+			if(j == 0 ){
+				breakpoints = append(breakpoints, breakPointTracker)
+			}
+			bitCursor = append(bitCursor, 0)
+
+			breakPointTracker++
+
+		}
+
+
+	}
+
+	//this return a 2D slice of type [][]int
+	//each []int contained is a binary cursor indexing the 1D representation
+	//and each binary cursor ensures a unique combination is chosen
+	//all combinations will be generated
+	allCombinationIndices := AllCombinationsIndices(breakpoints, bitCursor, len(bitCursor))
+
+	fmt.Println(allCombinationIndices)
 
 	//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
 	//definition to this file
-	allCombosSlice := [][]string{}
+	outputCombinationsSlice := [][]string{}
 
-	for i := 0; i < len(allComboIndices); i++ {
+	for i := 0; i < len(allCombinationIndices); i++ {
 
-		currentIndices := allComboIndices[i]
+		currentIndices := allCombinationIndices[i]
 
-		//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
-		//definition to this file
-		comboToAppend := []string{}
+		combinationToAppend := []string{}
 
 		for j := 0; j < len(currentIndices); j++ {
 			if(currentIndices[j] == 1){
-				comboToAppend = append(comboToAppend, mySliceAllValsToOneInnerArray[j])
+				combinationToAppend = append(combinationToAppend, originalSliceTo1DSlice[j])
 			}
 		}
 
 		//IMPORTANT this is slice of interest that should be returned to your main program
-		allCombosSlice = append(allCombosSlice, comboToAppend)
+		outputCombinationsSlice = append(outputCombinationsSlice, combinationToAppend)
 
 	}
 	//Print the resulting data for all combinations to check the data looks correct
-	for i := 0; i < len(allCombosSlice); i++ {
+	for i := 0; i < len(outputCombinationsSlice); i++ {
 
-		fmt.Println(allCombosSlice[i])
+		fmt.Println(outputCombinationsSlice[i])
 
 	}
 
@@ -119,140 +130,18 @@ func main() {
 
 }
 
-func AllCombinationsIndices(inputSlice interface{})  [][]int{
+func AllCombinationsIndices(breakpoints []int, bitCursor []int, totalElementsToChooseFrom int) [][]int{
 
-
-	//since the program should be able to use any type of 2D slice use
-	//reflect to just ensure that its any 2D slice
-	//again in the main function change the input and output slices to match your data type
-	//if you are using a custom struct add that struct definition to this file so the program will
-	//work
-	reflectType := reflect.TypeOf(inputSlice)
-
-	//this will be the inputSlice parameter to this function
-	//but temporarily in interface form
-	inputOptions := [][]interface{}{}
-
-	switch reflectType.Kind() {
-		case reflect.Slice:
-			elementType := reflectType.Elem()
-			switch elementType.Kind(){
-				case reflect.Slice:
-				
-					valueOf2DSlice := reflect.ValueOf(inputSlice)
-
-					//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
-					//definition to this file
-					typeString := reflect.TypeOf([][]string{})
-
-					firstConversion2DSlice := valueOf2DSlice.Convert(typeString)
-
-					//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
-					//definition to this file
-					finalConversion2DSlice := firstConversion2DSlice.Interface().([][]string)
-
-
-
-					for i := 0; i < len(finalConversion2DSlice); i++ {
-
-						firstElementInner := finalConversion2DSlice[i]
-
-						interfaceSliceInner := []interface{}{}
-
-						for j := 0; j < len(firstElementInner); j++ {
-							interfaceSliceInner = append(interfaceSliceInner, firstElementInner[j])
-						}
-
-						inputOptions = append(inputOptions, interfaceSliceInner)
-					}
-
-					
-				default:
-					panic("error, not a valid 2D slice, outer type is a slice, but inner type is not")	
-			}
-		default:
-			panic("error, not a valid 2D slice, outermost type is not of any slice")	
-			
-	}
-
-	//the bit slice is a slice that matches the length of 
-	//all the original elements of the original slice input to the entire program
-	//combined into one slice 
-	//sticking to the original input example: 
-	//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
-	//all of its elements in one slice looks like:
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//the bit slice indexes the latter slice above in a careful way to ensure
-	//no two types for example a, b,  or c are included in the same combination 
-	bitSlice := []int{}
-	
-
-	//following the example:
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//with indices ---->    0     1     2     3     4     5     6     7     8
-	//the break points are 0, 3, and 5
-	//these are points where the data type changes from one to the next
-	breakpoints := []int{}
-
-	//this value is used to calculate where breakpoints are as shown in the comment above
-	//the for loop below uses it
-	breakPointTracker := 0
-
-
-	//input options would be the entire parent slice
-	//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
-	for i := 0; i < len(inputOptions); i++ {
-
-		//the first option at index 0 is []string{"a0", "a1", "a2"}
-		//the second option at index 1 is []string{"b0", "b1"}
-		//the third option at index 2 is []string{"c0", "c1", "c2", "c3"}
-		currentInputOption := inputOptions[i]
-
-		for j := 0; j < len(currentInputOption); j++ {
-
-			//only append breakpoint for each new inner slice beginning
-			if(j == 0 ){
-				breakpoints = append(breakpoints, breakPointTracker)
-			}
-
-			//start with all 0 bits in the bit slice
-			bitSlice = append(bitSlice, 0)
-
-			//increment breakPoint tracker for each new element
-			breakPointTracker++
-
-		}
-
-
-	}
-
-	//max number is the max value the bitslice can be
-	//one thing to point out
-	//for the slice:
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//the maximum techincal value for an 9 bit cursor is obviously
-	//111111111
-	//however selecting all of the indices would break the rule because that would 
-	//make a combination with multiple a, b, and c values which is not the goal
-	//the maximum value for this program is
+	//this will be the maximum value for the binary cursor
+	//it is set below using the break points set to high bits
+	//for a 9 bit such as the example data with break points at 
+	//indices 0, 3, 5 the highest value will be:
 	//100101000
-	//which would yield the combination:
-	//[]string{"a0", "b0", "c0"}
+	//which is 296
 	maxNumber := float64(0)
 
-	lastIndex := len(bitSlice) - 1
+	lastIndex := len(bitCursor) - 1
 
-	//this for loop calculates the binary value at each breakpoint
-	//for the slice
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//with indices ---->   0      1     2     3     4     5     6     7     8 
-	//the breakpoints are 0, 3, and 5
-	//imagining a 9 bit string with these bits set to 1 you would get:
-	//100101000
-	//the 1 bits would be equal to 256, 32, and 8 respectively
-	//this becomes useful in the CheckModulosAreSatisfied() function
-	//the following for loop just caluclates these values and adds them together
-	//to give the maximum allowed value for the bit slice
 	for i := 0; i < len(breakpoints); i++ {
 
 		powerToRaiseTo := float64(lastIndex - breakpoints[i])
@@ -262,120 +151,69 @@ func AllCombinationsIndices(inputSlice interface{})  [][]int{
 
 	}
 
-	//this number starts the binary string at 000000001
-	//and the for loop increments to max val  100101000
 	currentNumber := 1
 
+	//unique binary cursors to return
 	returnValsIndices := [][]int{}
 
 	for (currentNumber < int(maxNumber) + 1){
-		satisfied, binarySlice := CheckModulosAreSatisfied(breakpoints, currentNumber, len(bitSlice))
+		satisfied, binaryCursor := CheckModulosAreSatisfied(breakpoints, currentNumber, len(bitCursor))
 	
 		if(satisfied){ 
 
-			returnValsIndices = append(returnValsIndices, binarySlice)
+			returnValsIndices = append(returnValsIndices, binaryCursor)
 
 		}
 		currentNumber++
 	}
 
-	//this slice contains all possible bit slices
-	//that will be used to get all unqiue combinations
 	return returnValsIndices
-
 }
 
+//this functions uses a binary string to an []int slice which holds the bits of the binary string
+//the function also uses the modulus operator to ensure that there are never two high bits set in between
+//break points
+func CheckModulosAreSatisfied(breakpoints []int, number int, totalElementsToChooseFrom int) (bool, []int) {
 
-func CheckModulosAreSatisfied(breakpoints []int, number int, numberRequiredBinaryLength int) (bool, []int) {
 
-
-	//the binary string is a string of bits
-	//the length is the numberRequiredBinaryLength parameter to the function
-	//which is the summation of the total elements from the 2D slice input to the program
-	//its job is to index the 2D slice and never index two elements from the same inner slice
-	//it creates unique combinations by incrementing from a binary 1 to the maximum allowed
-	//number which is touched upon later
+	//use an input number and convert it to binary string
 	binaryString := fmt.Sprintf("%b", number)
 
-
-	//append 0 to the binary string so it meets length requirements
-	for len(binaryString) < numberRequiredBinaryLength{
+	//make sure the binary string is long as the elements to choose from
+	for len(binaryString) < totalElementsToChooseFrom{
 		binaryString = "0" + binaryString
 	}
 
-	//the binary slice is essentially the binary string
-	//but in an int format, so the process is increment an integer
-	//get its binary string, convert that string to a binary slice
-	//which is really just the list of bits from the binary string
-	binarySlice := []int{}
+	//convert the binary string to have its bits be held in an []int slice
+	//the left most bit is the most significant
+	binaryCursor := []int{}
 
-	//here is where the binary string gets converted to its slice representation
-	//the leftmost bit (index 0) is most significant
 	for i := 0; i < len(binaryString); i++ {
 
 		currentBit := rune(binaryString[i])
 
 		if(currentBit == '0'){
-			binarySlice = append(binarySlice, 0)
+			binaryCursor = append(binaryCursor, 0)
 		}else if(currentBit == '1'){
-			binarySlice = append(binarySlice, 1)
+			binaryCursor = append(binaryCursor, 1)
 		}else{
-			panic("what kind of madness bit is this")
+			panic("unkown bit CheckModulosAreSatisfied()")
 		}
 	}
 
-	//the horizontal cursor helps move through the binary slice smoothly
-	//and keep track of break points
-	//break points represent points in the original slice where inner slices end and start
-	//take the example 
-	//[][]string{[]string{"a0", "a1", "a2"}, []string{"b0", "b1"}, []string{"c0", "c1", "c2", "c3"}}
-	//with indices ----->  0      1     2               3     4               5     6     7     8
-	//the break points are 0, 3, 5
-	//this is because the horizontal cursor moves from right to left
-	horizontalCursor := len(binarySlice) - 1
+	//used to help check the binaryCursor 
+	//won't yield an invalid combination
+	horizontalCursor := len(binaryCursor) - 1
 
 	doneCheckingMods := false
 
-	lastIndex := len(binarySlice) - 1
+	lastIndex := len(binaryCursor) - 1
 
-	//THIS FOLLOWING FOR LOOP IS THE IMPORTANT PART..The magic..
-	//the for loop below does most of the magic
-	//it starts at 000000001 and increments up to 100101000
-	//but doesn't accept values that might yield a combination with two 
-	//elements of the same type
-	//for example an ok bit slice would be
-	//0  0  1  0  1  0  0  0  0
-	//for our example:
-	//[][]string{[]string{"a0", "a1", "a2", "b0", "b1", "c0", "c1", "c2", "c3"}}
-	//this would get the values
-	//a2, and b1 
-	//a bit slice that is not ok is:
-	//1  0  0  1  1  0  0  0  0
-	//this would get 
-	//a0, b0, and b1 which would include 2 b value types and break the rule
-	//how does the for loop recognize this?
-	//via the modulus operator
-	//take the above example bit slice
-	//1  0  0  1  1  0  0  0  0
-	//the high bits are 256, 32, and 16 respectively
-	//this is where the breakpoints help
-	//one of the breakpoints was defined at index 3
-	//aka the high bit equal to 32
-	//the next break point would be at index 5
-	//what the for loop does it look at the values
-	//for  3 <= indices < 5
-	//in this case indices 3 and 4 
-	//it adds up the high bits, so 32 and 16 which equals 48
-	//then perform a modulus for the value of the break point
-	//in this case the break point at index 3 is 32
-	//so 32%48 = 32
-	//this fails the test, only a 0 remainder is a pass
-	//to see why this works take the example where only 32 is high
-	//or only 16 is high 
-	//32%32 = 0 32%16 = 0 
-	//this even works for trickier examples....
-	//what it does is checks that only 1 bit is high for between the breakpoints
-	//and this is what gaurantess unique combinations are acieved
+
+	//this for loop uses the modulus operator along with the generated breakpoints
+	//to ensure that there is never two high bits inbetween break points
+	//this would mean that two elements of the same inner slice of the original
+	//2D slice would be in a combination together violating the expected output
 	for !doneCheckingMods {
 
 		currentModDoneBeingChecked := false
@@ -387,7 +225,7 @@ func CheckModulosAreSatisfied(breakpoints []int, number int, numberRequiredBinar
 			currentAdditionToSummation := math.Pow(2, float64(lastIndex - horizontalCursor))
 
 
-			if(binarySlice[horizontalCursor] == 1){
+			if(binaryCursor[horizontalCursor] == 1){
 		
 				summation = summation + currentAdditionToSummation
 
@@ -408,7 +246,7 @@ func CheckModulosAreSatisfied(breakpoints []int, number int, numberRequiredBinar
 					currentModDoneBeingChecked = true
 
 				}else{
-					return false, binarySlice
+					return false, binaryCursor
 				}
 
 			}else{
@@ -419,12 +257,12 @@ func CheckModulosAreSatisfied(breakpoints []int, number int, numberRequiredBinar
 		}
 		
 		if(horizontalCursor == -1){
-			return true, binarySlice
+			return true, binaryCursor
 		}
 
 	}
 
-	return true, binarySlice
+	return true, binaryCursor
 }
 
 
