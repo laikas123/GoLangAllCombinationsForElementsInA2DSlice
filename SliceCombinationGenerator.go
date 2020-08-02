@@ -93,8 +93,6 @@ func main() {
 	//all combinations will be generated
 	allCombinationIndices := AllCombinationsIndices(breakpoints, bitCursor, len(bitCursor))
 
-	fmt.Println(allCombinationIndices)
-
 	//REPLACETYPE use your type of data instead of string, for custom struct you will need to add the struct
 	//definition to this file
 	outputCombinationsSlice := [][]string{}
